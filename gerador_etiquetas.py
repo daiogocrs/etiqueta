@@ -2,13 +2,12 @@ import tkinter as tk
 from tkinter import messagebox
 import os
 import re
-
+import sys
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import mm
     from reportlab.lib.pagesizes import letter
 except ImportError:
-    import sys
     print("Atenção: A biblioteca 'reportlab' não está instalada.")
     print("Rode: pip install reportlab")
     sys.exit(1)
@@ -166,6 +165,21 @@ def gerar_pdf():
 
 root = tk.Tk()
 root.title("Gerador de Etiquetas - HSR")
+
+def resource_path(relative_path):
+    """ Retorna o caminho absoluto, essencial para o PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+try:
+    caminho_icone = resource_path("hospital.ico")
+    root.iconbitmap(caminho_icone)
+except Exception:
+    pass 
+
 root.geometry("480x700") 
 root.configure(padx=15, pady=10)
 
