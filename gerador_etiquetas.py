@@ -1,6 +1,9 @@
 import sys
 import os
 import re
+import tempfile
+import threading
+import time
 import tkinter as tk
 from tkinter import messagebox
 
@@ -108,6 +111,16 @@ def limpar_fila():
         fila_pacientes.clear()
         lista_box.delete(0, tk.END)
 
+def apagar_arquivo_temp(caminho):
+    for _ in range(120): 
+        time.sleep(5)
+        try:
+            if os.path.exists(caminho):
+                os.remove(caminho)
+            break 
+        except Exception:
+            pass
+
 def gerar_pdf():
     if not fila_pacientes:
         messagebox.showwarning("Aviso", "Adicione pelo menos um paciente na fila.")
@@ -129,7 +142,8 @@ def gerar_pdf():
         messagebox.showerror("Erro", "A posição inicial deve ser entre 1 e 30.")
         return
 
-    nome_arquivo = "etiquetas.pdf"
+    fd, nome_arquivo = tempfile.mkstemp(suffix=".pdf", prefix="etiquetas_hsr_")
+    os.close(fd) 
     
     c = canvas.Canvas(nome_arquivo, pagesize=letter)
     c.setTitle("Etiquetas")
@@ -177,7 +191,19 @@ def gerar_pdf():
             posicao_atual += 1
             
     c.save()
-    messagebox.showinfo("Sucesso", f"Arquivo '{nome_arquivo}' gerado!\nLembre-se de imprimir em 'Carta' (Escala 100%).")
+    
+    try:
+        if os.name == 'nt': 
+            os.startfile(nome_arquivo)
+        else: 
+            import subprocess
+            subprocess.call(['open' if sys.platform == 'darwin' else 'xdg-open', nome_arquivo])
+        
+        threading.Thread(target=apagar_arquivo_temp, args=(nome_arquivo,), daemon=True).start()
+        
+        messagebox.showinfo("Sucesso", "O PDF foi aberto para impressão!\n\n(Ele se autodestruirá silenciosamente assim que você fechar o PDF).")
+    except Exception as e:
+        messagebox.showwarning("Aviso", f"O PDF foi gerado na pasta temporária, mas não consegui abri-lo automaticamente.\nErro: {e}")
 
 root = tk.Tk()
 root.title("Gerador de Etiquetas - HSR")
