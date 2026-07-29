@@ -286,8 +286,8 @@ frame_visual = tk.LabelFrame(root, text="Identificação na Etiqueta", font=("Ar
 frame_visual.pack(fill="x", pady=5)
 
 var_logo = tk.IntVar(value=1)
-tk.Radiobutton(frame_visual, text="Nenhum (Padrão)", variable=var_logo, value=0).grid(row=0, column=0, sticky="w")
-tk.Radiobutton(frame_visual, text="1 Logo (logo.png/jpg)", variable=var_logo, value=1).grid(row=0, column=1, sticky="w")
+tk.Radiobutton(frame_visual, text="Nenhum", variable=var_logo, value=0).grid(row=0, column=0, sticky="w")
+tk.Radiobutton(frame_visual, text="Logo (Padrão)", variable=var_logo, value=1).grid(row=0, column=1, sticky="w")
 tk.Radiobutton(frame_visual, text="Logo + Nome Hosp.", variable=var_logo, value=2).grid(row=0, column=2, sticky="w")
 tk.Radiobutton(frame_visual, text="Apenas Nome Hosp.", variable=var_logo, value=3).grid(row=0, column=3, sticky="w")
 
