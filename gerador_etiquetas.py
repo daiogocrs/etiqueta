@@ -170,23 +170,18 @@ def gerar_pdf():
             x = margem_esq_val + (coluna * (larg_etiqueta_val + gap_horiz_val))
             y_base_etiqueta = letter[1] - margem_sup_val - (linha * (alt_etiqueta_val + gap_vert_val))
             
-            # --- AJUSTE INTELIGENTE DE TAMANHO DE FONTE ---
             fonte_nome = "Helvetica-Bold"
             tamanho_nome = 10
             
-            # Define o espaço limite (44mm com logo, 66mm sem logo)
             espaco_maximo = 44 * mm if usar_logo != 0 else 66 * mm
             texto_formatado = f"Nome: {paciente['nome']}"
             
-            # Mede a largura exata que o texto ocupa em milímetros
             largura_texto = stringWidth(texto_formatado, fonte_nome, tamanho_nome)
             
-            # Se for maior que o espaço permitido, reduzimos a fonte proporcionalmente
             if largura_texto > espaco_maximo:
                 fator_reducao = espaco_maximo / largura_texto
                 tamanho_nome = tamanho_nome * fator_reducao
                 
-                # Definimos um limite mínimo para não ficar invisível
                 if tamanho_nome < 5.5:
                     tamanho_nome = 5.5
                     
