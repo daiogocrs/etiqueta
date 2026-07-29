@@ -11,6 +11,7 @@ try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.units import mm
     from reportlab.lib.pagesizes import letter
+    from reportlab.pdfbase.pdfmetrics import stringWidth
 except ImportError:
     print("Atenção: A biblioteca 'reportlab' não está instalada.")
     print("Rode: pip install reportlab")
@@ -152,7 +153,11 @@ def gerar_pdf():
     usar_logo = var_logo.get()
     
     caminho_logo = resource_path("logo.png")
-    
+    if not os.path.exists(caminho_logo):
+        caminho_logo = resource_path("logo.jpeg")
+    if not os.path.exists(caminho_logo):
+        caminho_logo = resource_path("logo.jpg")
+        
     for paciente in fila_pacientes:
         for _ in range(paciente["reps"]):
             if posicao_atual >= 30:
@@ -165,9 +170,28 @@ def gerar_pdf():
             x = margem_esq_val + (coluna * (larg_etiqueta_val + gap_horiz_val))
             y_base_etiqueta = letter[1] - margem_sup_val - (linha * (alt_etiqueta_val + gap_vert_val))
             
-            c.setFont("Helvetica-Bold", 10)
-            nome_limpo = paciente['nome'][:28] + "..." if len(paciente['nome']) > 30 else paciente['nome']
-            c.drawString(x + 2*mm, y_base_etiqueta - 6*mm, f"Nome: {nome_limpo}")
+            # --- AJUSTE INTELIGENTE DE TAMANHO DE FONTE ---
+            fonte_nome = "Helvetica-Bold"
+            tamanho_nome = 10
+            
+            # Define o espaço limite (44mm com logo, 66mm sem logo)
+            espaco_maximo = 44 * mm if usar_logo != 0 else 66 * mm
+            texto_formatado = f"Nome: {paciente['nome']}"
+            
+            # Mede a largura exata que o texto ocupa em milímetros
+            largura_texto = stringWidth(texto_formatado, fonte_nome, tamanho_nome)
+            
+            # Se for maior que o espaço permitido, reduzimos a fonte proporcionalmente
+            if largura_texto > espaco_maximo:
+                fator_reducao = espaco_maximo / largura_texto
+                tamanho_nome = tamanho_nome * fator_reducao
+                
+                # Definimos um limite mínimo para não ficar invisível
+                if tamanho_nome < 5.5:
+                    tamanho_nome = 5.5
+                    
+            c.setFont(fonte_nome, tamanho_nome)
+            c.drawString(x + 2*mm, y_base_etiqueta - 6*mm, texto_formatado)
             
             c.setFont("Helvetica", 9)
             c.drawString(x + 2*mm, y_base_etiqueta - 12*mm, f"CPF: {paciente['cpf']}")
@@ -201,9 +225,8 @@ def gerar_pdf():
         
         threading.Thread(target=apagar_arquivo_temp, args=(nome_arquivo,), daemon=True).start()
         
-        messagebox.showinfo("Sucesso", "O PDF foi aberto para impressão!\n\n(Ele se autodestruirá silenciosamente assim que você fechar o PDF).")
     except Exception as e:
-        messagebox.showwarning("Aviso", f"O PDF foi gerado na pasta temporária, mas não consegui abri-lo automaticamente.\nErro: {e}")
+        messagebox.showwarning("Aviso", f"O PDF foi gerado na pasta temporária, mas não consegui abri-lo.\nErro: {e}")
 
 root = tk.Tk()
 root.title("Gerador de Etiquetas - HSR")
@@ -268,8 +291,8 @@ frame_visual = tk.LabelFrame(root, text="Identificação na Etiqueta", font=("Ar
 frame_visual.pack(fill="x", pady=5)
 
 var_logo = tk.IntVar(value=1)
-tk.Radiobutton(frame_visual, text="Nenhum", variable=var_logo, value=0).grid(row=0, column=0, sticky="w")
-tk.Radiobutton(frame_visual, text="1 Logo (Padrão)", variable=var_logo, value=1).grid(row=0, column=1, sticky="w")
+tk.Radiobutton(frame_visual, text="Nenhum (Padrão)", variable=var_logo, value=0).grid(row=0, column=0, sticky="w")
+tk.Radiobutton(frame_visual, text="1 Logo (logo.png/jpg)", variable=var_logo, value=1).grid(row=0, column=1, sticky="w")
 tk.Radiobutton(frame_visual, text="Logo + Nome Hosp.", variable=var_logo, value=2).grid(row=0, column=2, sticky="w")
 tk.Radiobutton(frame_visual, text="Apenas Nome Hosp.", variable=var_logo, value=3).grid(row=0, column=3, sticky="w")
 
