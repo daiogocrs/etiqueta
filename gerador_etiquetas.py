@@ -54,7 +54,7 @@ def formatar_data(event=None):
 
 def restaurar_padroes():
     entry_margem_esq.delete(0, tk.END)
-    entry_margem_esq.insert(0, "10.0")
+    entry_margem_esq.insert(0, "6.0")
     entry_margem_sup.delete(0, tk.END)
     entry_margem_sup.insert(0, "12.70")
     entry_larg_etiqueta.delete(0, tk.END)
@@ -244,7 +244,7 @@ def criar_campo_medida(parent, texto, default, row, col):
     entry.grid(row=row, column=col+1, padx=5, pady=2)
     return entry
 
-entry_margem_esq = criar_campo_medida(frame_config, "Margem Esq:", "10.0", 0, 0)
+entry_margem_esq = criar_campo_medida(frame_config, "Margem Esq:", "6.0", 0, 0)
 entry_margem_sup = criar_campo_medida(frame_config, "Margem Topo:", "12.70", 0, 2)
 entry_larg_etiqueta = criar_campo_medida(frame_config, "Largura Etiq:", "70", 1, 0)
 entry_alt_etiqueta = criar_campo_medida(frame_config, "Altura Etiq:", "25.4", 1, 2)
