@@ -6,6 +6,7 @@ import threading
 import time
 import tkinter as tk
 from tkinter import messagebox
+from datetime import datetime
 
 try:
     from reportlab.pdfgen import canvas
@@ -49,8 +50,37 @@ def formatar_data(event=None):
         formatado = f"{numeros[:2]}/{numeros[2:]}"
     else:
         formatado = numeros
+    
     entry_nasc.delete(0, tk.END)
     entry_nasc.insert(0, formatado)
+    
+    if len(formatado) == 10:
+        try:
+            nascimento = datetime.strptime(formatado, "%d/%m/%Y")
+            hoje = datetime.now()
+            
+            anos = hoje.year - nascimento.year - ((hoje.month, hoje.day) < (nascimento.month, nascimento.day))
+            
+            entry_idade.delete(0, tk.END)
+            
+            if anos > 0:
+                entry_idade.insert(0, f"{anos}a")
+            else:
+                meses = (hoje.year - nascimento.year) * 12 + hoje.month - nascimento.month
+                if hoje.day < nascimento.day:
+                    meses -= 1
+                    
+                if meses > 0:
+                    entry_idade.insert(0, f"{meses}m")
+                else:
+                    dias = (hoje - nascimento).days
+                    if dias < 0:
+                        dias = 0
+                    entry_idade.insert(0, f"{dias}d")
+        except ValueError:
+            entry_idade.delete(0, tk.END)
+    else:
+        entry_idade.delete(0, tk.END)
 
 def restaurar_padroes():
     entry_margem_esq.delete(0, tk.END)
@@ -72,8 +102,10 @@ def adicionar_paciente():
     formatar_data()
     
     nome = entry_nome.get().strip()
+    mae = entry_mae.get().strip()
     cpf = entry_cpf.get().strip()
     nasc = entry_nasc.get().strip()
+    idade = entry_idade.get().strip()
     
     try:
         reps = int(entry_repeticoes.get())
@@ -88,12 +120,21 @@ def adicionar_paciente():
         messagebox.showerror("Erro", "O número de repetições deve ser pelo menos 1.")
         return
 
-    fila_pacientes.append({"nome": nome, "cpf": cpf, "nasc": nasc, "reps": reps})
-    lista_box.insert(tk.END, f"{nome} | {reps}x | {cpf} | {nasc}")
+    fila_pacientes.append({
+        "nome": nome, 
+        "mae": mae,
+        "cpf": cpf, 
+        "nasc": nasc, 
+        "idade": idade,
+        "reps": reps
+    })
+    lista_box.insert(tk.END, f"{nome} | Mãe: {mae[:10]}... | {reps}x | {cpf}")
     
     entry_nome.delete(0, tk.END)
+    entry_mae.delete(0, tk.END)
     entry_cpf.delete(0, tk.END)
     entry_nasc.delete(0, tk.END)
+    entry_idade.delete(0, tk.END)
     entry_repeticoes.delete(0, tk.END)
     entry_repeticoes.insert(0, "1")
     entry_nome.focus()
@@ -170,27 +211,37 @@ def gerar_pdf():
             x = margem_esq_val + (coluna * (larg_etiqueta_val + gap_horiz_val))
             y_base_etiqueta = letter[1] - margem_sup_val - (linha * (alt_etiqueta_val + gap_vert_val))
             
-            fonte_nome = "Helvetica-Bold"
-            tamanho_nome = 10
-            
             espaco_maximo = 44 * mm if usar_logo != 0 else 66 * mm
-            texto_formatado = f"Nome: {paciente['nome']}"
             
-            largura_texto = stringWidth(texto_formatado, fonte_nome, tamanho_nome)
+            fonte_nome = "Helvetica-Bold"
+            tamanho_nome = 9
+            texto_nome = f"Nome: {paciente['nome']}"
             
+            largura_texto = stringWidth(texto_nome, fonte_nome, tamanho_nome)
             if largura_texto > espaco_maximo:
                 fator_reducao = espaco_maximo / largura_texto
-                tamanho_nome = tamanho_nome * fator_reducao
-                
-                if tamanho_nome < 5.5:
-                    tamanho_nome = 5.5
+                tamanho_nome = max(5.5, tamanho_nome * fator_reducao)
                     
             c.setFont(fonte_nome, tamanho_nome)
-            c.drawString(x + 2*mm, y_base_etiqueta - 6*mm, texto_formatado)
+            c.drawString(x + 2*mm, y_base_etiqueta - 5*mm, texto_nome)
             
-            c.setFont("Helvetica", 9)
-            c.drawString(x + 2*mm, y_base_etiqueta - 12*mm, f"CPF: {paciente['cpf']}")
-            c.drawString(x + 2*mm, y_base_etiqueta - 18*mm, f"Nasc: {paciente['nasc']}")
+            tamanho_mae = 8
+            texto_mae = f"Mãe: {paciente['mae']}"
+            
+            largura_mae = stringWidth(texto_mae, "Helvetica", tamanho_mae)
+            if largura_mae > espaco_maximo:
+                fator_reducao_mae = espaco_maximo / largura_mae
+                tamanho_mae = max(5.0, tamanho_mae * fator_reducao_mae)
+                
+            c.setFont("Helvetica", tamanho_mae)
+            c.drawString(x + 2*mm, y_base_etiqueta - 9.5*mm, texto_mae)
+            
+            c.setFont("Helvetica", 8)
+            c.drawString(x + 2*mm, y_base_etiqueta - 14*mm, f"CPF: {paciente['cpf']}")
+            
+            texto_idade = f"   Idade: {paciente['idade']}" if paciente['idade'] else ""
+            texto_nasc_idade = f"Nasc: {paciente['nasc']}{texto_idade}"
+            c.drawString(x + 2*mm, y_base_etiqueta - 18.5*mm, texto_nasc_idade)
             
             if usar_logo == 1:
                 if os.path.exists(caminho_logo):
@@ -206,7 +257,6 @@ def gerar_pdf():
                 c.drawCentredString(x + 56*mm, y_base_etiqueta - 11*mm, "HOSPITAL")
                 c.drawCentredString(x + 56*mm, y_base_etiqueta - 15*mm, "SÃO ROQUE")
                 
-            c.setFont("Helvetica", 9)
             posicao_atual += 1
             
     c.save()
@@ -225,7 +275,7 @@ def gerar_pdf():
 
 root = tk.Tk()
 root.title("Gerador de Etiquetas - HSR")
-root.geometry("530x760") 
+root.geometry("530x820") 
 root.configure(padx=15, pady=10)
 
 try:
@@ -257,19 +307,27 @@ btn_padrao.grid(row=0, column=4, rowspan=3, padx=10)
 frame_inputs = tk.Frame(root)
 frame_inputs.pack(fill="x", pady=5)
 
-tk.Label(frame_inputs, text="Nome do Paciente:", font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, sticky="w")
+tk.Label(frame_inputs, text="Nome do Paciente:", font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=3, sticky="w")
 entry_nome = tk.Entry(frame_inputs, width=70) 
-entry_nome.grid(row=1, column=0, columnspan=2, pady=2, sticky="w")
+entry_nome.grid(row=1, column=0, columnspan=3, pady=2, sticky="w")
 
-tk.Label(frame_inputs, text="CPF:", font=("Arial", 10, "bold")).grid(row=2, column=0, sticky="w", pady=(5,0))
-entry_cpf = tk.Entry(frame_inputs, width=32)
-entry_cpf.grid(row=3, column=0, pady=2, sticky="w", padx=(0, 10))
+tk.Label(frame_inputs, text="Nome da Mãe:", font=("Arial", 10, "bold")).grid(row=2, column=0, columnspan=3, sticky="w", pady=(5,0))
+entry_mae = tk.Entry(frame_inputs, width=70) 
+entry_mae.grid(row=3, column=0, columnspan=3, pady=2, sticky="w")
+
+tk.Label(frame_inputs, text="CPF:", font=("Arial", 10, "bold")).grid(row=4, column=0, sticky="w", pady=(5,0))
+entry_cpf = tk.Entry(frame_inputs, width=28)
+entry_cpf.grid(row=5, column=0, pady=2, sticky="w", padx=(0, 10))
 entry_cpf.bind('<KeyRelease>', formatar_cpf)
 
-tk.Label(frame_inputs, text="Data de Nasc.:", font=("Arial", 10, "bold")).grid(row=2, column=1, sticky="w", pady=(5,0))
-entry_nasc = tk.Entry(frame_inputs, width=32)
-entry_nasc.grid(row=3, column=1, pady=2, sticky="w")
+tk.Label(frame_inputs, text="Data de Nasc.:", font=("Arial", 10, "bold")).grid(row=4, column=1, sticky="w", pady=(5,0))
+entry_nasc = tk.Entry(frame_inputs, width=18)
+entry_nasc.grid(row=5, column=1, pady=2, sticky="w", padx=(0, 10))
 entry_nasc.bind('<KeyRelease>', formatar_data)
+
+tk.Label(frame_inputs, text="Idade:", font=("Arial", 10, "bold")).grid(row=4, column=2, sticky="w", pady=(5,0))
+entry_idade = tk.Entry(frame_inputs, width=15)
+entry_idade.grid(row=5, column=2, pady=2, sticky="w")
 
 frame_add = tk.Frame(root)
 frame_add.pack(fill="x", pady=10)
